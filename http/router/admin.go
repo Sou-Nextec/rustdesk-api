@@ -311,6 +311,12 @@ func MyBind(rg *gin.RouterGroup) {
 		rg.GET("/my/shared/address_book/list", cont.AddressBooks)
 		rg.POST("/my/shared/status", cont.Status)
 	}
+
+	{
+		// Nextec: foto de perfil do próprio usuário
+		cont := &my.NextecProfile{}
+		rg.POST("/my/profile/avatar", cont.Avatar)
+	}
 	{
 		cont := &my.Peer{}
 		rg.GET("/my/peer/list", cont.List)

@@ -154,6 +154,7 @@ func (o *Oauth) Detail(c *gin.Context) {
 	iid, _ := strconv.Atoi(id)
 	u := service.AllService.OauthService.InfoById(uint(iid))
 	if u.Id > 0 {
+		u.ClientSecret = "" // Nextec: não devolver o segredo ao navegador
 		response.Success(c, u)
 		return
 	}
@@ -221,6 +222,10 @@ func (o *Oauth) List(c *gin.Context) {
 		return
 	}
 	res := service.AllService.OauthService.List(query.Page, query.PageSize, nil)
+	// Nextec: o segredo do provedor nunca volta ao navegador; ao editar, vazio mantém o atual
+	for _, item := range res.Oauths {
+		item.ClientSecret = ""
+	}
 	response.Success(c, res)
 }
 
