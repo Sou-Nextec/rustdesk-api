@@ -305,6 +305,13 @@ func MyBind(rg *gin.RouterGroup) {
 		rg.POST("/my/address_book_collection_rule/delete", cont.Delete)
 	}
 	{
+		// Nextec: listas compartilhadas comigo e situação online dos meus acessos
+		cont := &my.NextecShared{}
+		rg.GET("/my/shared/collections", cont.Collections)
+		rg.GET("/my/shared/address_book/list", cont.AddressBooks)
+		rg.POST("/my/shared/status", cont.Status)
+	}
+	{
 		cont := &my.Peer{}
 		rg.GET("/my/peer/list", cont.List)
 
