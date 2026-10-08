@@ -61,9 +61,7 @@ func ApiInit(g *gin.Engine) {
 		frg.POST("/sysinfo_ver", pe.SysInfoVer)
 	}
 
-	if global.Config.App.WebClient == 1 {
-		WebClientRoutes(frg)
-	}
+	WebClientRoutes(frg)
 
 	{
 		au := &api.Audit{}
@@ -135,7 +133,9 @@ func PersonalRoutes(frg *gin.RouterGroup) {
 
 }
 
-func WebClientRoutes(frg *gin.RouterGroup) {
+func WebClientRoutes(rg *gin.RouterGroup) {
+	// rotas sempre registradas; a chave app.web-client é checada a cada requisição
+	frg := rg.Group("", middleware.WebClientEnabled())
 	w := &api.WebClient{}
 	{
 		frg.POST("/shared-peer", w.SharedPeer)

@@ -121,6 +121,11 @@ func InitGlobal() {
 		ReportCaller: global.Config.Logger.ReportCaller,
 	})
 
+	// configurações alteradas pelo painel Nextec (data/nextec-settings.json) têm prioridade
+	if err := global.LoadNextecSettings(); err != nil {
+		global.Logger.Error("load nextec settings: ", err)
+	}
+
 	global.InitI18n()
 
 	//redis
