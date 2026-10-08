@@ -14,7 +14,10 @@ type SqliteConfig struct {
 }
 
 func NewSqlite(sqliteConf *SqliteConfig, logwriter logger.Writer) *gorm.DB {
-	db, err := gorm.Open(sqlite.Open("./data/rustdeskapi.db"), &gorm.Config{
+	// Nextec: modo WAL (leitores não esperam escritor), espera de até 30 s em vez de 5 s quando o banco
+	// está ocupado e transações que já começam como escrita (evita "database is locked" sem saída)
+	dsn := "file:./data/rustdeskapi.db?_journal_mode=WAL&_busy_timeout=30000&_synchronous=NORMAL&_txlock=immediate"
+	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{
 		DisableForeignKeyConstraintWhenMigrating: true,
 		Logger: logger.New(
 			logwriter, // io writer
