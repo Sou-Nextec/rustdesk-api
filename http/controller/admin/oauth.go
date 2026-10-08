@@ -250,12 +250,20 @@ func (o *Oauth) Update(c *gin.Context) {
 		response.Fail(c, 101, response.TranslateMsg(c, "ParamsError"))
 		return
 	}
+	// Nextec: o painel não recebe o segredo; ao editar, vazio mantém o atual
+	keepSecret := f.ClientSecret == ""
+	if keepSecret {
+		f.ClientSecret = "-"
+	}
 	errList := global.Validator.ValidStruct(c, f)
 	if len(errList) > 0 {
 		response.Fail(c, 101, errList[0])
 		return
 	}
 	u := f.ToOauth()
+	if keepSecret {
+		u.ClientSecret = ""
+	}
 	fields := []string{"op", "oauth_type", "issuer", "scopes", "client_id", "pkce_method"}
 	if u.AutoRegister != nil {
 		fields = append(fields, "auto_register")
