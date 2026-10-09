@@ -21,6 +21,11 @@ func ApiInit(g *gin.Engine) {
 	// 加载 HTML 模板
 	g.LoadHTMLGlob("resources/templates/*")
 
+	// Nextec: página pública do suporte avulso
+	sup := &api.NextecSupport{}
+	g.GET("/suporte", sup.Page)
+	g.GET("/suporte/baixar", sup.Download)
+
 	frg := g.Group("/api")
 
 	{

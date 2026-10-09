@@ -84,6 +84,11 @@ func NextecBind(adg *gin.RouterGroup) {
 	rg.POST("/updates/upload", upd.Upload)
 	rg.POST("/updates/rollout", upd.Rollout)
 	rg.POST("/updates/delete", upd.Delete)
+
+	sup := &admin.NextecSupport{}
+	rg.GET("/support", sup.Info)
+	rg.POST("/support/upload", sup.Upload)
+	rg.POST("/support/delete", sup.Delete)
 }
 func LoginBind(rg *gin.RouterGroup) {
 	cont := &admin.Login{}
@@ -333,6 +338,10 @@ func MyBind(rg *gin.RouterGroup) {
 		// Nextec: link de conexão (com a senha automática, quando a máquina tem)
 		conn := &my.NextecConnect{}
 		rg.GET("/my/connect-link", conn.Link)
+
+		// Nextec: suporte avulso, lista de quem está aguardando atendimento
+		sw := &my.NextecSupportWaiting{}
+		rg.GET("/my/support/waiting", sw.List)
 	}
 
 	{
