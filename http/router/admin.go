@@ -93,6 +93,12 @@ func NextecBind(adg *gin.RouterGroup) {
 	asg := &admin.NextecAssign{}
 	rg.GET("/install-token", asg.Token)
 	rg.POST("/install-token/revoke", asg.Revoke)
+
+	ctl := &admin.NextecControl{}
+	rg.GET("/policies", ctl.Policies)
+	rg.POST("/policies", ctl.PolicySave)
+	rg.GET("/sessions", ctl.Sessions)
+	rg.POST("/sessions/disconnect", ctl.Disconnect)
 }
 func LoginBind(rg *gin.RouterGroup) {
 	cont := &admin.Login{}

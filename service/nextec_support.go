@@ -22,8 +22,8 @@ const (
 	nextecSupportFile       = "nextec-suporte.exe"
 	NextecSupportDownload   = "Suporte-Nextec.exe"
 	settingSupportApp       = "support_app"
-	nextecWaitingOnlineSecs = int64(600)          // visto nos últimos 10 minutos
-	nextecWaitingMaxAge     = 24 * time.Hour      // dispositivo novo: cadastrado nas últimas 24 horas
+	nextecWaitingOnlineSecs = int64(600)     // visto nos últimos 10 minutos
+	nextecWaitingMaxAge     = 24 * time.Hour // dispositivo novo: cadastrado nas últimas 24 horas
 	nextecWaitingLimit      = 50
 )
 

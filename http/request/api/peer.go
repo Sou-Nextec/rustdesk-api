@@ -76,4 +76,7 @@ type PeerInfoInHeartbeat struct {
 	Id   string `json:"id"`
 	Uuid string `json:"uuid"`
 	Ver  int    `json:"ver"`
+	// Nextec: conexões abertas e carimbo da última política recebida (o app envia nos dois)
+	Conns      []int64 `json:"conns"`
+	ModifiedAt int64   `json:"modified_at"`
 }

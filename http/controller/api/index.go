@@ -59,6 +59,11 @@ func (i *Index) Heartbeat(c *gin.Context) {
 		upp := &model.Peer{RowId: peer.RowId, LastOnlineTime: time.Now().Unix(), LastOnlineIp: c.ClientIP()}
 		service.AllService.PeerService.Update(upp)
 	}
+	// Nextec: políticas do app e derrubar conexão. Só para quem prova ser o dispositivo (uuid igual ao cadastrado).
+	if peer.Uuid != "" && peer.Uuid == info.Uuid {
+		c.JSON(http.StatusOK, service.NextecHeartbeat(info.Id, info.Conns, info.ModifiedAt))
+		return
+	}
 	c.JSON(http.StatusOK, gin.H{})
 }
 
