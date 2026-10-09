@@ -52,6 +52,8 @@ func (p *Peer) SysInfo(c *gin.Context) {
 			return
 		}
 	}
+	// Nextec: aplica o cliente escolhido na instalação, se houver
+	service.NextecApplyPendingAssign(f.Id)
 	//SYSINFO_UPDATED 上传成功
 	//ID_NOT_FOUND 下次心跳会上传
 	//直接响应文本

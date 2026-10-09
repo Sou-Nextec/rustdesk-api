@@ -48,6 +48,10 @@ func ApiInit(g *gin.Engine) {
 		up := &api.NextecUpdate{}
 		frg.GET("/nextec/update/versao.json", up.Manifest)
 		frg.GET("/nextec/update/files/:name", up.File)
+
+		// Nextec: instalação por cliente (script de instalação)
+		inst := &api.NextecAssign{}
+		frg.POST("/nextec/install/assign", inst.Assign)
 	}
 
 	{
