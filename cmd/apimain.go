@@ -220,6 +220,9 @@ func InitGlobal() {
 	if err := global.DB.AutoMigrate(&model.NextecSecretPolicy{}, &model.NextecDeviceSecret{}, &model.NextecSecretAudit{}); err != nil {
 		global.Logger.Error("migrate nextec secrets: ", err)
 	}
+	if err := global.DB.AutoMigrate(&model.NextecAppRelease{}, &model.NextecAppInstall{}); err != nil {
+		global.Logger.Error("migrate nextec updates: ", err)
+	}
 }
 
 func DatabaseAutoUpdate() {

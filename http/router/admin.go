@@ -78,6 +78,12 @@ func NextecBind(adg *gin.RouterGroup) {
 	rg.POST("/secrets/unenroll", sec.Unenroll)
 	rg.POST("/secrets/agent-key", sec.AgentKey)
 	rg.GET("/secrets/audit", sec.Audit)
+
+	upd := &admin.NextecUpdate{}
+	rg.GET("/updates", upd.Overview)
+	rg.POST("/updates/upload", upd.Upload)
+	rg.POST("/updates/rollout", upd.Rollout)
+	rg.POST("/updates/delete", upd.Delete)
 }
 func LoginBind(rg *gin.RouterGroup) {
 	cont := &admin.Login{}

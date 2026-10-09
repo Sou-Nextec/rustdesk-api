@@ -38,6 +38,11 @@ func ApiInit(g *gin.Engine) {
 		frg.POST("/nextec/agent/sync", ag.Sync)
 		frg.POST("/nextec/agent/password", ag.Password)
 		frg.POST("/nextec/agent/confirm", ag.Confirm)
+
+		// Nextec: atualização do app (Instalar-Nextec.ps1)
+		up := &api.NextecUpdate{}
+		frg.GET("/nextec/update/versao.json", up.Manifest)
+		frg.GET("/nextec/update/files/:name", up.File)
 	}
 
 	{
