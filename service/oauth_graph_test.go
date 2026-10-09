@@ -41,3 +41,17 @@ func TestFetchGraphPhoto(t *testing.T) {
 		t.Fatalf("cliente nulo deveria devolver vazio")
 	}
 }
+
+func TestAvatarCanBeReplaced(t *testing.T) {
+	casos := map[string]bool{
+		"": true,
+		"https://graph.microsoft.com/v1.0/me/photo/$value": true,
+		"data:image/jpeg;base64,AAAA":                      false,
+		"https://exemplo.com/foto.png":                     false,
+	}
+	for avatar, esperado := range casos {
+		if got := avatarCanBeReplaced(avatar); got != esperado {
+			t.Errorf("avatar %q: esperado %v, veio %v", avatar, esperado, got)
+		}
+	}
+}

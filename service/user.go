@@ -375,9 +375,14 @@ func (us *UserService) RegisterByOauth(oauthUser *model.OauthUser, op string) (e
 	return nil, user
 }
 
+// avatarCanBeReplaced: vazio, ou uma URL do Graph gravada por engano (exige token e não abre no navegador nem no app)
+func avatarCanBeReplaced(current string) bool {
+	return current == "" || strings.HasPrefix(current, "https://graph.microsoft.com/")
+}
+
 // FillAvatarIfEmpty grava a foto vinda do login externo se o usuário ainda não tem uma (não sobrescreve a escolhida por ele)
 func (us *UserService) FillAvatarIfEmpty(user *model.User, avatar string) {
-	if user == nil || user.Id == 0 || avatar == "" || user.Avatar != "" {
+	if user == nil || user.Id == 0 || avatar == "" || !avatarCanBeReplaced(user.Avatar) {
 		return
 	}
 	upd := &model.User{}

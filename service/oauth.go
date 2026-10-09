@@ -332,8 +332,9 @@ func (os *OauthService) oidcCallback(oauthConfig *oauth2.Config, provider *oidc.
 		return err, nil
 	}
 	ou := user.ToOauthUser()
-	// Nextec: o Microsoft Entra ID não envia a foto no login; busca no Microsoft Graph (quem não tem foto fica sem)
-	if ou.Picture == "" && strings.Contains(oauthConfig.Endpoint.AuthURL, "login.microsoftonline.com") {
+	// Nextec: no Microsoft Entra ID o claim "picture" do login é uma URL do Graph que só abre com token;
+	// troca pela foto embutida buscada no Graph (quem não tem foto fica sem)
+	if strings.Contains(oauthConfig.Endpoint.AuthURL, "login.microsoftonline.com") {
 		ou.Picture = fetchGraphPhoto(client, graphPhotoURL)
 		if ou.Picture != "" {
 			Logger.Info("graph photo fetched for ", ou.Username)
