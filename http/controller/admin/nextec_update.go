@@ -28,7 +28,7 @@ func nextecUpdateMsg(err error) string {
 	case errors.Is(err, service.ErrNextecBadVersion):
 		return "Versão inválida. Use números separados por ponto, como 2.0.1."
 	case errors.Is(err, service.ErrNextecBadFile):
-		return "Arquivo inválido. Envie o instalador .msi (ou .exe) gerado pelo rdgen, com até 300 MB."
+		return "Arquivo inválido. Envie o instalador .msi (ou .exe), com até 300 MB."
 	case errors.Is(err, service.ErrNextecVersionTaken):
 		return "Essa versão já foi enviada. Use um número novo."
 	case errors.Is(err, service.ErrNextecInUse):

@@ -16,7 +16,7 @@ func (n *NextecSupportWaiting) List(c *gin.Context) {
 	u := service.AllService.UserService.CurUser(c)
 	if !service.NextecWaitingAllowed(u) {
 		// sem permissão: a tela some com o bloco e nenhum dado de dispositivo sai
-		response.Success(c, &gin.H{"list": []service.NextecWaitingPeer{}, "has_app": false, "enabled": false, "mode": service.NextecWaitingMode()})
+		response.Success(c, &gin.H{"list": []service.NextecWaitingPeer{}, "has_app": service.NextecSupportAppGet() != nil, "enabled": false, "mode": service.NextecWaitingMode()})
 		return
 	}
 	response.Success(c, &gin.H{"list": service.NextecSupportWaiting(), "has_app": service.NextecSupportAppGet() != nil, "enabled": true, "mode": service.NextecWaitingMode()})

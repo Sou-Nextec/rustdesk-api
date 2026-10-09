@@ -55,7 +55,7 @@ func (n *NextecSupport) Upload(c *gin.Context) {
 	u := service.AllService.UserService.CurUser(c)
 	a, err := service.NextecSupportAppSave(u, fh.Filename, f)
 	if err != nil {
-		response.Fail(c, 101, "Arquivo inválido. Envie o aplicativo de suporte (.exe) gerado pelo rdgen, com até 300 MB.")
+		response.Fail(c, 101, "Arquivo inválido. Envie o aplicativo de suporte (.exe), com até 300 MB.")
 		return
 	}
 	service.NextecSecretAuditAdd(u, "", "support_upload", nextecIP(c), "")
