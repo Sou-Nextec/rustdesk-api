@@ -375,6 +375,19 @@ func (us *UserService) RegisterByOauth(oauthUser *model.OauthUser, op string) (e
 	return nil, user
 }
 
+// FillAvatarIfEmpty grava a foto vinda do login externo se o usuário ainda não tem uma (não sobrescreve a escolhida por ele)
+func (us *UserService) FillAvatarIfEmpty(user *model.User, avatar string) {
+	if user == nil || user.Id == 0 || avatar == "" || user.Avatar != "" {
+		return
+	}
+	upd := &model.User{}
+	upd.Id = user.Id
+	upd.Avatar = avatar
+	if err := UpdateFields(upd, "avatar"); err == nil {
+		user.Avatar = avatar
+	}
+}
+
 // GenerateUsernameByOauth 生成用户名
 func (us *UserService) GenerateUsernameByOauth(name string) string {
 	for us.IsUsernameExists(name) {

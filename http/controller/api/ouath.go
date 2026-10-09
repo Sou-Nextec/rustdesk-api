@@ -208,6 +208,7 @@ func (o *Oauth) OauthCallback(c *gin.Context) {
 			})
 			return
 		}
+		service.AllService.UserService.FillAvatarIfEmpty(user, oauthUser.Picture)
 		c.HTML(http.StatusOK, "oauth_success.html", gin.H{
 			"message": "BindSuccess",
 		})
@@ -240,6 +241,8 @@ func (o *Oauth) OauthCallback(c *gin.Context) {
 				return
 			}
 		}
+		// Nextec: foto do provedor (ex.: Microsoft 365) para quem ainda não tem foto
+		service.AllService.UserService.FillAvatarIfEmpty(user, oauthUser.Picture)
 		oauthCache.UserId = user.Id
 		oauthService.SetOauthCache(cacheKey, oauthCache, 0)
 		// 如果是webadmin，登录成功后跳转到webadmin

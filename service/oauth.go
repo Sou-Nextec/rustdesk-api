@@ -2,8 +2,10 @@ package service
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"io"
 
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/lejianwen/rustdesk-api/v2/model"
@@ -13,7 +15,6 @@ import (
 
 	// "golang.org/x/oauth2/google"
 	"gorm.io/gorm"
-	// "io"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -326,10 +327,46 @@ func (os *OauthService) linuxdoCallback(oauthConfig *oauth2.Config, provider *oi
 // oidcCallback oidc回调, 通过code获取用户信息
 func (os *OauthService) oidcCallback(oauthConfig *oauth2.Config, provider *oidc.Provider, code, verifier, nonce string) (error, *model.OauthUser) {
 	var user = &model.OidcUser{}
-	if err, _ := os.callbackBase(oauthConfig, provider, code, verifier, nonce, user); err != nil {
+	err, client := os.callbackBase(oauthConfig, provider, code, verifier, nonce, user)
+	if err != nil {
 		return err, nil
 	}
-	return nil, user.ToOauthUser()
+	ou := user.ToOauthUser()
+	// Nextec: o Microsoft Entra ID não envia a foto no login; busca no Microsoft Graph (quem não tem foto fica sem)
+	if ou.Picture == "" && strings.Contains(oauthConfig.Endpoint.AuthURL, "login.microsoftonline.com") {
+		ou.Picture = fetchGraphPhoto(client, graphPhotoURL)
+	}
+	return nil, ou
+}
+
+const graphPhotoURL = "https://graph.microsoft.com/v1.0/me/photos/96x96/$value"
+
+// fetchGraphPhoto devolve a foto do usuário como data URI (vazio se não houver foto, sem permissão ou em erro)
+func fetchGraphPhoto(client *http.Client, url string) string {
+	if client == nil {
+		return ""
+	}
+	resp, err := client.Get(url)
+	if err != nil {
+		Logger.Warn("graph photo request failed: ", err)
+		return ""
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		// 404: sem foto; 403: falta a permissão User.Read (escopo) no login externo
+		Logger.Info("graph photo not available, status ", resp.StatusCode)
+		return ""
+	}
+	const maxBytes = 150 * 1024
+	b, err := io.ReadAll(io.LimitReader(resp.Body, maxBytes+1))
+	if err != nil || len(b) == 0 || len(b) > maxBytes {
+		return ""
+	}
+	ct := resp.Header.Get("Content-Type")
+	if ct != "image/jpeg" && ct != "image/png" && ct != "image/webp" {
+		ct = "image/jpeg"
+	}
+	return "data:" + ct + ";base64," + base64.StdEncoding.EncodeToString(b)
 }
 
 // Callback: Get user information by code and op(Oauth provider)
