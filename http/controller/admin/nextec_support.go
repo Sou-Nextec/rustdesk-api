@@ -14,7 +14,27 @@ type NextecSupport struct{}
 // Info devolve o app publicado e o caminho público da página
 // @Router /admin/nextec/support [get]
 func (n *NextecSupport) Info(c *gin.Context) {
-	response.Success(c, &gin.H{"app": service.NextecSupportAppGet(), "path": "/suporte", "max_size": service.NextecUpdateMaxSize})
+	response.Success(c, &gin.H{"app": service.NextecSupportAppGet(), "path": "/suporte", "max_size": service.NextecUpdateMaxSize, "waiting_mode": service.NextecWaitingMode()})
+}
+
+type nextecSupportSettingsForm struct {
+	WaitingMode string `json:"waiting_mode" binding:"required"`
+}
+
+// Settings define quem vê a fila Aguardando atendimento (off, admins ou all)
+// @Router /admin/nextec/support/settings [post]
+func (n *NextecSupport) Settings(c *gin.Context) {
+	f := &nextecSupportSettingsForm{}
+	if err := c.ShouldBindJSON(f); err != nil {
+		response.Fail(c, 101, response.TranslateMsg(c, "ParamsError")+err.Error())
+		return
+	}
+	if err := service.NextecWaitingModeSet(f.WaitingMode); err != nil {
+		response.Fail(c, 101, "Opção inválida. Use off, admins ou all.")
+		return
+	}
+	service.NextecSecretAuditAdd(service.AllService.UserService.CurUser(c), "", "support_settings", nextecIP(c), f.WaitingMode)
+	response.Success(c, &gin.H{"waiting_mode": service.NextecWaitingMode()})
 }
 
 // Upload recebe o app de suporte (multipart: file)

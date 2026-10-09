@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"io"
 	"os"
 	"path/filepath"
@@ -22,8 +23,9 @@ const (
 	nextecSupportFile       = "nextec-suporte.exe"
 	NextecSupportDownload   = "Suporte-Nextec.exe"
 	settingSupportApp       = "support_app"
-	nextecWaitingOnlineSecs = int64(600)     // visto nos últimos 10 minutos
-	nextecWaitingMaxAge     = 24 * time.Hour // dispositivo novo: cadastrado nas últimas 24 horas
+	settingWaitingMode      = "waiting_visibility" // off | admins | all
+	nextecWaitingOnlineSecs = int64(600)           // visto nos últimos 10 minutos
+	nextecWaitingMaxAge     = 24 * time.Hour       // dispositivo novo: cadastrado nas últimas 24 horas
 	nextecWaitingLimit      = 50
 )
 
@@ -148,4 +150,35 @@ func NextecSupportWaiting() []NextecWaitingPeer {
 		}
 	}
 	return out
+}
+
+// ---------- quem vê a fila "Aguardando atendimento" ----------
+
+var ErrNextecWaitingMode = errors.New("modo inválido")
+
+// NextecWaitingMode devolve quem pode ver a fila: off (ninguém), admins (padrão) ou all (qualquer usuário logado).
+func NextecWaitingMode() string {
+	switch m := global.NextecSettingGet(settingWaitingMode); m {
+	case "off", "all":
+		return m
+	}
+	return "admins"
+}
+
+func NextecWaitingModeSet(mode string) error {
+	if mode != "off" && mode != "admins" && mode != "all" {
+		return ErrNextecWaitingMode
+	}
+	return global.NextecSettingSet(settingWaitingMode, mode)
+}
+
+// NextecWaitingAllowed aplica a regra no servidor: a tela só esconde, quem decide é esta função.
+func NextecWaitingAllowed(u *model.User) bool {
+	switch NextecWaitingMode() {
+	case "all":
+		return u != nil
+	case "admins":
+		return u != nil && AllService.UserService.IsAdmin(u)
+	}
+	return false
 }

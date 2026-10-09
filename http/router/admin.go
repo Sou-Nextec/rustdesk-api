@@ -89,6 +89,7 @@ func NextecBind(adg *gin.RouterGroup) {
 	rg.GET("/support", sup.Info)
 	rg.POST("/support/upload", sup.Upload)
 	rg.POST("/support/delete", sup.Delete)
+	rg.POST("/support/settings", sup.Settings)
 
 	asg := &admin.NextecAssign{}
 	rg.GET("/install-token", asg.Token)
