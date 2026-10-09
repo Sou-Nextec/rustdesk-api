@@ -52,6 +52,32 @@ func SetWebClient(enabled bool) error {
 	return nil
 }
 
+// NextecClientTemplates devolve os modelos de cliente (lista JSON) guardados no servidor; vazio se não houver.
+func NextecClientTemplates() (json.RawMessage, error) {
+	nextecSettingsMu.Lock()
+	defer nextecSettingsMu.Unlock()
+	s, err := readNextecSettings()
+	if err != nil {
+		return nil, err
+	}
+	if v, ok := s["client_templates"]; ok {
+		return v, nil
+	}
+	return json.RawMessage("[]"), nil
+}
+
+// SetNextecClientTemplates grava os modelos de cliente (lista JSON) no mesmo arquivo das demais configurações.
+func SetNextecClientTemplates(v json.RawMessage) error {
+	nextecSettingsMu.Lock()
+	defer nextecSettingsMu.Unlock()
+	s, err := readNextecSettings()
+	if err != nil {
+		return err
+	}
+	s["client_templates"] = v
+	return writeNextecSettings(s)
+}
+
 func readNextecSettings() (map[string]json.RawMessage, error) {
 	s := map[string]json.RawMessage{}
 	b, err := os.ReadFile(NextecSettingsFile)

@@ -67,6 +67,8 @@ func NextecBind(adg *gin.RouterGroup) {
 	cont := &admin.Nextec{}
 	rg := adg.Group("/nextec").Use(middleware.AdminPrivilege())
 	rg.POST("/web-client", cont.WebClient)
+	rg.GET("/client-templates", cont.ClientTemplates)
+	rg.POST("/client-templates", cont.SaveClientTemplates)
 }
 func LoginBind(rg *gin.RouterGroup) {
 	cont := &admin.Login{}
