@@ -32,6 +32,15 @@ func ApiInit(g *gin.Engine) {
 	}
 
 	{
+		// Nextec: agente de senha automática instalado nas máquinas
+		ag := &api.NextecAgent{}
+		frg.POST("/nextec/agent/enroll", ag.Enroll)
+		frg.POST("/nextec/agent/sync", ag.Sync)
+		frg.POST("/nextec/agent/password", ag.Password)
+		frg.POST("/nextec/agent/confirm", ag.Confirm)
+	}
+
+	{
 		l := &api.Login{}
 		// 如果返回oidc则可以通过oidc登录
 		frg.GET("/login-options", l.LoginOptions)

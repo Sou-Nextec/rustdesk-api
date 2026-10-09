@@ -216,6 +216,10 @@ func InitGlobal() {
 	})
 	global.LoginLimiter.RegisterProvider(utils.B64StringCaptchaProvider{})
 	DatabaseAutoUpdate()
+	// Nextec: tabelas do cofre de senhas (criadas sempre, sem depender da versão do banco)
+	if err := global.DB.AutoMigrate(&model.NextecSecretPolicy{}, &model.NextecDeviceSecret{}, &model.NextecSecretAudit{}); err != nil {
+		global.Logger.Error("migrate nextec secrets: ", err)
+	}
 }
 
 func DatabaseAutoUpdate() {

@@ -69,6 +69,15 @@ func NextecBind(adg *gin.RouterGroup) {
 	rg.POST("/web-client", cont.WebClient)
 	rg.GET("/client-templates", cont.ClientTemplates)
 	rg.POST("/client-templates", cont.SaveClientTemplates)
+
+	sec := &admin.NextecSecret{}
+	rg.GET("/secrets", sec.Overview)
+	rg.POST("/secrets/policy", sec.Policy)
+	rg.POST("/secrets/rotate", sec.RotateNow)
+	rg.POST("/secrets/reveal", sec.Reveal)
+	rg.POST("/secrets/unenroll", sec.Unenroll)
+	rg.POST("/secrets/agent-key", sec.AgentKey)
+	rg.GET("/secrets/audit", sec.Audit)
 }
 func LoginBind(rg *gin.RouterGroup) {
 	cont := &admin.Login{}
@@ -312,6 +321,12 @@ func MyBind(rg *gin.RouterGroup) {
 		rg.GET("/my/shared/collections", cont.Collections)
 		rg.GET("/my/shared/address_book/list", cont.AddressBooks)
 		rg.POST("/my/shared/status", cont.Status)
+	}
+
+	{
+		// Nextec: link de conexão (com a senha automática, quando a máquina tem)
+		conn := &my.NextecConnect{}
+		rg.GET("/my/connect-link", conn.Link)
 	}
 
 	{

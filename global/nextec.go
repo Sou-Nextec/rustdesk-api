@@ -127,3 +127,30 @@ func writeNextecSettings(s map[string]json.RawMessage) error {
 	}
 	return os.Rename(tmp.Name(), NextecSettingsFile)
 }
+
+// NextecSettingGet lê uma chave de texto das configurações da Nextec (vazio se não existir).
+func NextecSettingGet(key string) string {
+	nextecSettingsMu.Lock()
+	defer nextecSettingsMu.Unlock()
+	s, err := readNextecSettings()
+	if err != nil {
+		return ""
+	}
+	var v string
+	if raw, ok := s[key]; ok {
+		_ = json.Unmarshal(raw, &v)
+	}
+	return v
+}
+
+// NextecSettingSet grava uma chave de texto nas configurações da Nextec.
+func NextecSettingSet(key, value string) error {
+	nextecSettingsMu.Lock()
+	defer nextecSettingsMu.Unlock()
+	s, err := readNextecSettings()
+	if err != nil {
+		return err
+	}
+	s[key], _ = json.Marshal(value)
+	return writeNextecSettings(s)
+}
