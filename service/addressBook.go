@@ -63,6 +63,7 @@ func (s *AddressBookService) UpdateAddressBook(abs []*model.AddressBook, userId 
 	//2.1 获取peers中的id
 	aBIds := make(map[string]*model.AddressBook)
 	for _, ab := range abs {
+		ab.Id = NextecCleanId(ab.Id)
 		aBIds[ab.Id] = ab
 	}
 	//2.2 获取数据库中的id
@@ -128,6 +129,7 @@ func (s *AddressBookService) FromPeer(peer *model.Peer) (a *model.AddressBook) {
 
 // Create 创建
 func (s *AddressBookService) Create(u *model.AddressBook) error {
+	u.Id = NextecCleanId(u.Id)
 	res := DB.Create(u).Error
 	return res
 }
@@ -137,6 +139,7 @@ func (s *AddressBookService) Delete(u *model.AddressBook) error {
 
 // Update 更新
 func (s *AddressBookService) Update(u *model.AddressBook) error {
+	u.Id = NextecCleanId(u.Id)
 	return DB.Model(u).Updates(u).Error
 }
 
@@ -147,6 +150,7 @@ func (s *AddressBookService) UpdateByMap(u *model.AddressBook, data map[string]i
 
 // UpdateAll 更新
 func (s *AddressBookService) UpdateAll(u *model.AddressBook) error {
+	u.Id = NextecCleanId(u.Id)
 	return DB.Model(u).Select("*").Omit("created_at").Updates(u).Error
 }
 

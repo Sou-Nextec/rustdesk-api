@@ -105,6 +105,7 @@ func (ps *PeerService) ListFilterByUserId(page, pageSize uint, where func(tx *go
 
 // Create 创建
 func (ps *PeerService) Create(u *model.Peer) error {
+	u.Id = NextecCleanId(u.Id)
 	res := DB.Create(u).Error
 	return res
 }
@@ -149,5 +150,6 @@ func (ps *PeerService) BatchDelete(ids []uint) error {
 
 // Update 更新
 func (ps *PeerService) Update(u *model.Peer) error {
+	u.Id = NextecCleanId(u.Id)
 	return DB.Model(u).Updates(u).Error
 }

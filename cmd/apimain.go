@@ -223,6 +223,8 @@ func InitGlobal() {
 	if err := global.DB.AutoMigrate(&model.NextecAppRelease{}, &model.NextecAppInstall{}, &model.NextecPendingAssign{}, &model.NextecAppPolicy{}, &model.NextecConnectNote{}); err != nil {
 		global.Logger.Error("migrate nextec updates: ", err)
 	}
+	// Nextec: IDs gravados com espaço passam a ser salvos sem espaço
+	service.NextecNormalizeIds()
 }
 
 func DatabaseAutoUpdate() {
