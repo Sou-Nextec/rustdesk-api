@@ -335,6 +335,9 @@ func (os *OauthService) oidcCallback(oauthConfig *oauth2.Config, provider *oidc.
 	// Nextec: o Microsoft Entra ID não envia a foto no login; busca no Microsoft Graph (quem não tem foto fica sem)
 	if ou.Picture == "" && strings.Contains(oauthConfig.Endpoint.AuthURL, "login.microsoftonline.com") {
 		ou.Picture = fetchGraphPhoto(client, graphPhotoURL)
+		if ou.Picture != "" {
+			Logger.Info("graph photo fetched for ", ou.Username)
+		}
 	}
 	return nil, ou
 }
@@ -354,7 +357,7 @@ func fetchGraphPhoto(client *http.Client, url string) string {
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		// 404: sem foto; 403: falta a permissão User.Read (escopo) no login externo
-		Logger.Info("graph photo not available, status ", resp.StatusCode)
+		Logger.Warn("graph photo not available, status ", resp.StatusCode)
 		return ""
 	}
 	const maxBytes = 150 * 1024
