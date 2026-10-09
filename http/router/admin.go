@@ -99,6 +99,11 @@ func NextecBind(adg *gin.RouterGroup) {
 	rg.POST("/policies", ctl.PolicySave)
 	rg.GET("/sessions", ctl.Sessions)
 	rg.POST("/sessions/disconnect", ctl.Disconnect)
+
+	rep := &admin.NextecReport{}
+	rg.GET("/ticket-settings", rep.TicketSettings)
+	rg.POST("/ticket-settings", rep.TicketSettingsSave)
+	rg.GET("/report", rep.Report)
 }
 func LoginBind(rg *gin.RouterGroup) {
 	cont := &admin.Login{}
@@ -352,6 +357,11 @@ func MyBind(rg *gin.RouterGroup) {
 		// Nextec: suporte avulso, lista de quem está aguardando atendimento
 		sw := &my.NextecSupportWaiting{}
 		rg.GET("/my/support/waiting", sw.List)
+
+		// Nextec: chamado informado ao conectar
+		note := &my.NextecNote{}
+		rg.GET("/my/connect-settings", note.Settings)
+		rg.POST("/my/connect-note", note.Add)
 	}
 
 	{
