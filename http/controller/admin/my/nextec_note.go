@@ -20,7 +20,9 @@ type nextecNoteForm struct {
 // Settings devolve se o painel pede o chamado ao conectar e o endereço base do Jira
 // @Router /admin/my/connect-settings [get]
 func (ct *NextecNote) Settings(c *gin.Context) {
-	response.Success(c, service.NextecTicketSettingsGet())
+	t := service.NextecTicketSettingsGet()
+	// scheme: protocolo do link do app (o app gerado como Nextec-Connect abre nextec-connect://)
+	response.Success(c, &gin.H{"mode": t.Mode, "jira_base": t.JiraBase, "scheme": service.NextecConnectSchemeGet()})
 }
 
 // Add registra o chamado da conexão que vai começar

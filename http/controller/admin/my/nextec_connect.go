@@ -12,7 +12,7 @@ import (
 // e só para quem pode acessar a máquina; cada uso fica registrado em auditoria.
 type NextecConnect struct{}
 
-// Link devolve rustdesk://<id>[?password=...]
+// Link devolve <protocolo>://<id>[?password=...] (protocolo: rustdesk ou o nome do app gerado, ver NextecConnectSchemeGet)
 // @Router /admin/my/connect-link [get]
 func (ct *NextecConnect) Link(c *gin.Context) {
 	id := c.Query("id")
@@ -26,7 +26,7 @@ func (ct *NextecConnect) Link(c *gin.Context) {
 		response.Fail(c, 403, response.TranslateMsg(c, "NoAccess"))
 		return
 	}
-	link := "rustdesk://" + url.PathEscape(id)
+	link := service.NextecConnectSchemeGet() + "://" + url.PathEscape(id)
 	if pw != "" {
 		link += "?password=" + url.QueryEscape(pw)
 		ip := c.GetHeader("CF-Connecting-IP")

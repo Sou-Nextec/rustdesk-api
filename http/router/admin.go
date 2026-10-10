@@ -105,6 +105,10 @@ func NextecBind(adg *gin.RouterGroup) {
 	rg.GET("/ticket-settings", rep.TicketSettings)
 	rg.POST("/ticket-settings", rep.TicketSettingsSave)
 	rg.GET("/report", rep.Report)
+
+	sch := &admin.NextecScheme{}
+	rg.GET("/connect-scheme", sch.Get)
+	rg.POST("/connect-scheme", sch.Save)
 }
 func LoginBind(rg *gin.RouterGroup) {
 	cont := &admin.Login{}
