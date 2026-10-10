@@ -4,6 +4,9 @@ import (
 	"fmt"
 	"github.com/lejianwen/rustdesk-api/v2/model"
 	"net"
+	"os"
+	"strconv"
+	"strings"
 	"time"
 )
 
@@ -43,6 +46,15 @@ func (is *ServerCmdService) Create(u *model.ServerCmd) error {
 func (is *ServerCmdService) SendCmd(port int, cmd string, arg string) (string, error) {
 	//组装命令
 	cmd = cmd + " " + arg
+	// Nextec: hbbs/hbbr em outro contêiner. O hbbs só aceita comandos vindos de 127.0.0.1, então um encaminhador (nc) ao lado
+	// dele recebe na porta + deslocamento e repassa pelo loopback. NEXTEC_SERVER_CMD_HOST vazio mantém o comportamento original.
+	if host := strings.TrimSpace(os.Getenv("NEXTEC_SERVER_CMD_HOST")); host != "" {
+		offset := 10
+		if v, e := strconv.Atoi(strings.TrimSpace(os.Getenv("NEXTEC_SERVER_CMD_PORT_OFFSET"))); e == nil && v > 0 {
+			offset = v
+		}
+		return is.sendTo("tcp", net.JoinHostPort(host, strconv.Itoa(port+offset)), "remote", cmd)
+	}
 	res, err := is.SendSocketCmd("v6", port, cmd)
 	if err == nil {
 		return res, nil
@@ -63,7 +75,12 @@ func (is *ServerCmdService) SendSocketCmd(ty string, port int, cmd string) (stri
 		tcp = "tcp"
 		addr = "127.0.0.1"
 	}
-	conn, err := net.Dial(tcp, fmt.Sprintf("%s:%v", addr, port))
+	return is.sendTo(tcp, fmt.Sprintf("%s:%v", addr, port), ty, cmd)
+}
+
+// sendTo abre a conexão, envia o comando e devolve a resposta (usado pelo loopback e pelo encaminhador da Nextec).
+func (is *ServerCmdService) sendTo(tcp string, address string, ty string, cmd string) (string, error) {
+	conn, err := net.Dial(tcp, address)
 	if err != nil {
 		Logger.Debugf("%s connect to id server failed: %v", ty, err)
 		return "", err
@@ -77,11 +94,19 @@ func (is *ServerCmdService) SendSocketCmd(ty string, port int, cmd string) (stri
 	}
 	time.Sleep(100 * time.Millisecond)
 	//读取返回
+	// Nextec: comandos de gravação (aur Y, rs ...) não respondem nada; sem prazo a leitura ficava esperando para sempre
+	// quando o fim da conexão não chegava (encaminhador). Sem resposta em 3 s, o comando foi enviado e o retorno é vazio.
+	_ = conn.SetReadDeadline(time.Now().Add(3 * time.Second))
 	buf := make([]byte, 1024)
 	n, err := conn.Read(buf)
-	if err != nil && err.Error() != "EOF" {
-		Logger.Debugf("%s read response failed: %v", ty, err)
-		return "", err
+	if err != nil {
+		if ne, ok := err.(net.Error); ok && ne.Timeout() && n == 0 {
+			return "", nil
+		}
+		if err.Error() != "EOF" {
+			Logger.Debugf("%s read response failed: %v", ty, err)
+			return "", err
+		}
 	}
 	return string(buf[:n]), nil
 }
