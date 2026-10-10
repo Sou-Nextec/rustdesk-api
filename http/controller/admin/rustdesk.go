@@ -130,7 +130,7 @@ func (r *Rustdesk) SendCmd(c *gin.Context) {
 
 	res, err := service.AllService.ServerCmdService.SendCmd(port, rc.Cmd, rc.Option)
 	if err != nil {
-		response.Fail(c, 101, err.Error())
+		response.Fail(c, 101, service.NextecCmdErrorMessage(rc.Target, err))
 		return
 	}
 	response.Success(c, res)
