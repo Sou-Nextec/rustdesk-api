@@ -73,8 +73,12 @@ func NextecRolloutSet(version, mode string, groups []uint, peers []string) error
 		// mantém a versão anterior só como referência
 		r.Version = NextecRolloutGet().Version
 	case NextecRolloutPilot, NextecRolloutAll:
-		if NextecReleaseByVersion(version) == nil {
+		release := NextecReleaseByVersion(version)
+		if release == nil {
 			return ErrNextecNoRelease
+		}
+		if NextecReleaseSignature(release) == nil {
+			return ErrNextecReleaseSignature
 		}
 		r.Version = version
 		if mode == NextecRolloutPilot {
@@ -104,6 +108,9 @@ func NextecRolloutSet(version, mode string, groups []uint, peers []string) error
 
 func NextecReleaseList() (res []*model.NextecAppRelease) {
 	DB.Order("id desc").Find(&res)
+	for _, release := range res {
+		release.Signed = NextecReleaseSignature(release) != nil
+	}
 	return res
 }
 
@@ -117,7 +124,7 @@ func NextecReleaseByVersion(v string) *model.NextecAppRelease {
 
 func NextecReleaseByFile(name string) *model.NextecAppRelease {
 	r := &model.NextecAppRelease{}
-	if DB.Where("file_name = ?", name).First(r).Error != nil {
+	if DB.Where("file_name = ? OR linux_amd64_file_name = ? OR linux_arm64_file_name = ?", name, name, name).First(r).Error != nil {
 		return nil
 	}
 	return r
@@ -127,19 +134,38 @@ func NextecReleasePath(r *model.NextecAppRelease) string {
 	return filepath.Join(nextecUpdateDir, r.FileName)
 }
 
+func NextecReleasePathForFile(r *model.NextecAppRelease, name string) string {
+	if r == nil || (name != r.FileName && name != r.LinuxAMD64FileName && name != r.LinuxARM64FileName) {
+		return ""
+	}
+	return filepath.Join(nextecUpdateDir, name)
+}
+
 // NextecReleaseSave guarda o instalador enviado: confere versão, extensão e cabeçalho do arquivo, calcula o SHA-256
 // e nunca sobrescreve uma versão existente.
-func NextecReleaseSave(u *model.User, version, notes, originalName string, src io.Reader) (*model.NextecAppRelease, error) {
+func NextecReleaseSave(u *model.User, version, notes, originalName, platform string, src io.Reader) (*model.NextecAppRelease, error) {
 	version = strings.TrimSpace(version)
 	if !nextecVersionPattern.MatchString(version) {
 		return nil, ErrNextecBadVersion
 	}
 	ext := strings.ToLower(filepath.Ext(originalName))
-	if ext != ".msi" && ext != ".exe" {
+	if platform == "" {
+		if ext == ".msi" || ext == ".exe" {
+			platform = "windows"
+		}
+	}
+	if platform != "windows" && platform != "linux-amd64" && platform != "linux-arm64" {
 		return nil, ErrNextecBadFile
 	}
-	if NextecReleaseByVersion(version) != nil {
-		return nil, ErrNextecVersionTaken
+	if (platform == "windows" && ext != ".msi" && ext != ".exe") || (strings.HasPrefix(platform, "linux-") && ext != ".deb") {
+		return nil, ErrNextecBadFile
+	}
+	r := NextecReleaseByVersion(version)
+	if platform == "windows" && r != nil { return nil, ErrNextecVersionTaken }
+	if platform != "windows" {
+		if r == nil || r.FileName == "" || !strings.HasSuffix(strings.ToLower(r.FileName), ".msi") { return nil, ErrNextecNoRelease }
+		if platform == "linux-amd64" && r.LinuxAMD64FileName != "" { return nil, ErrNextecVersionTaken }
+		if platform == "linux-arm64" && r.LinuxARM64FileName != "" { return nil, ErrNextecVersionTaken }
 	}
 	if err := os.MkdirAll(nextecUpdateDir, 0755); err != nil {
 		return nil, err
@@ -176,14 +202,23 @@ func NextecReleaseSave(u *model.User, version, notes, originalName string, src i
 		return nil, ErrNextecBadFile
 	}
 	name := fmt.Sprintf("nextec-acesso-%s%s", version, ext)
+	if platform == "linux-amd64" { name = fmt.Sprintf("nextec-acesso-%s-amd64.deb", version) }
+	if platform == "linux-arm64" { name = fmt.Sprintf("nextec-acesso-%s-arm64.deb", version) }
 	if err := os.Chmod(tmp.Name(), 0644); err != nil {
 		return nil, err
 	}
 	if err := os.Rename(tmp.Name(), filepath.Join(nextecUpdateDir, name)); err != nil {
 		return nil, err
 	}
-	r := &model.NextecAppRelease{
-		Version: version, FileName: name, Sha256: hex.EncodeToString(h.Sum(nil)), Size: size,
+	digest := hex.EncodeToString(h.Sum(nil))
+	if platform != "windows" {
+		if platform == "linux-amd64" { r.LinuxAMD64FileName, r.LinuxAMD64Sha256, r.LinuxAMD64Size = name, digest, size }
+		if platform == "linux-arm64" { r.LinuxARM64FileName, r.LinuxARM64Sha256, r.LinuxARM64Size = name, digest, size }
+		if err := DB.Save(r).Error; err != nil { _ = os.Remove(filepath.Join(nextecUpdateDir, name)); return nil, err }
+		return r, nil
+	}
+	r = &model.NextecAppRelease{
+		Version: version, FileName: name, Sha256: digest, Size: size,
 		Notes: truncate(strings.TrimSpace(notes), 1000), CreatedAt: time.Now().Unix(),
 	}
 	if u != nil {
@@ -202,6 +237,8 @@ func nextecMagicOk(ext string, head []byte) bool {
 		return len(head) >= 8 && string(head[:8]) == "\xD0\xCF\x11\xE0\xA1\xB1\x1A\xE1"
 	case ".exe":
 		return len(head) >= 2 && head[0] == 'M' && head[1] == 'Z'
+	case ".deb":
+		return len(head) >= 8 && string(head[:8]) == "!<arch>\n"
 	}
 	return false
 }
@@ -226,7 +263,9 @@ func NextecReleaseDelete(id uint) error {
 	if err := DB.Delete(r).Error; err != nil {
 		return err
 	}
-	_ = os.Remove(NextecReleasePath(r))
+	for _, name := range []string{r.FileName, r.LinuxAMD64FileName, r.LinuxARM64FileName} {
+		if name != "" { _ = os.Remove(filepath.Join(nextecUpdateDir, name)) }
+	}
 	return nil
 }
 
@@ -287,3 +326,4 @@ func NextecUpdateInstalls() (res []*model.NextecAppInstall) {
 	DB.Order("seen_at desc").Limit(5000).Find(&res)
 	return res
 }
+

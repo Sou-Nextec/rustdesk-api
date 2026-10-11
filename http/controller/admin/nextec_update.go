@@ -12,6 +12,26 @@ import (
 // NextecUpdate: tela de atualização do app pelo painel (somente admin).
 type NextecUpdate struct{}
 
+// Signature authorizes an already uploaded MSI; the private key stays on the publisher's computer.
+func (n *NextecUpdate) Signature(c *gin.Context) {
+	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, 100000)
+	var form struct {
+		Version   string `json:"version"`
+		Manifest  string `json:"manifesto"`
+		Signature string `json:"assinatura"`
+	}
+	if c.ShouldBindJSON(&form) != nil {
+		response.Fail(c, 101, service.ErrNextecReleaseSignature.Error())
+		return
+	}
+	if err := service.NextecReleaseSignatureSave(form.Version, service.NextecSignedRelease{Manifest: form.Manifest, Signature: form.Signature}); err != nil {
+		response.Fail(c, 101, err.Error())
+		return
+	}
+	service.NextecSecretAuditAdd(service.AllService.UserService.CurUser(c), "", "update_authorize", nextecIP(c), form.Version)
+	response.Success(c, nil)
+}
+
 type nextecRolloutForm struct {
 	Version string   `json:"version"`
 	Mode    string   `json:"mode" binding:"required"`
@@ -28,7 +48,7 @@ func nextecUpdateMsg(err error) string {
 	case errors.Is(err, service.ErrNextecBadVersion):
 		return "Versão inválida. Use números separados por ponto, como 2.0.1."
 	case errors.Is(err, service.ErrNextecBadFile):
-		return "Arquivo inválido. Envie o instalador .msi (ou .exe) gerado pelo rdgen, com até 300 MB."
+		return "Arquivo inválido. Envie o MSI ou um pacote Linux .deb de arquitetura suportada, com até 300 MB."
 	case errors.Is(err, service.ErrNextecVersionTaken):
 		return "Essa versão já foi enviada. Use um número novo."
 	case errors.Is(err, service.ErrNextecInUse):
@@ -66,7 +86,7 @@ func (n *NextecUpdate) Upload(c *gin.Context) {
 	}
 	defer f.Close()
 	u := service.AllService.UserService.CurUser(c)
-	r, err := service.NextecReleaseSave(u, c.PostForm("version"), c.PostForm("notes"), fh.Filename, f)
+	r, err := service.NextecReleaseSave(u, c.PostForm("version"), c.PostForm("notes"), fh.Filename, c.PostForm("platform"), f)
 	if err != nil {
 		response.Fail(c, 101, nextecUpdateMsg(err))
 		return
@@ -106,3 +126,4 @@ func (n *NextecUpdate) Delete(c *gin.Context) {
 	service.NextecSecretAuditAdd(service.AllService.UserService.CurUser(c), "", "update_delete", nextecIP(c), "")
 	response.Success(c, nil)
 }
+

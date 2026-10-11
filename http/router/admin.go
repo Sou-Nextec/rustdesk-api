@@ -57,7 +57,7 @@ func Init(g *gin.Engine) {
 
 func RustdeskCmdBind(adg *gin.RouterGroup) {
 	cont := &admin.Rustdesk{}
-	rg := adg.Group("/rustdesk")
+	rg := adg.Group("/rustdesk").Use(middleware.AdminPrivilege())
 	rg.POST("/sendCmd", cont.SendCmd)
 	rg.GET("/cmdList", cont.CmdList)
 	rg.POST("/cmdDelete", cont.CmdDelete)
@@ -82,8 +82,34 @@ func NextecBind(adg *gin.RouterGroup) {
 	upd := &admin.NextecUpdate{}
 	rg.GET("/updates", upd.Overview)
 	rg.POST("/updates/upload", upd.Upload)
+	rg.POST("/updates/signature", upd.Signature)
 	rg.POST("/updates/rollout", upd.Rollout)
 	rg.POST("/updates/delete", upd.Delete)
+
+	sup := &admin.NextecSupport{}
+	rg.GET("/support", sup.Info)
+	rg.POST("/support/upload", sup.Upload)
+	rg.POST("/support/delete", sup.Delete)
+	rg.POST("/support/settings", sup.Settings)
+
+	asg := &admin.NextecAssign{}
+	rg.GET("/install-token", asg.Token)
+	rg.POST("/install-token/revoke", asg.Revoke)
+
+	ctl := &admin.NextecControl{}
+	rg.GET("/policies", ctl.Policies)
+	rg.POST("/policies", ctl.PolicySave)
+	rg.GET("/sessions", ctl.Sessions)
+	rg.POST("/sessions/disconnect", ctl.Disconnect)
+
+	rep := &admin.NextecReport{}
+	rg.GET("/ticket-settings", rep.TicketSettings)
+	rg.POST("/ticket-settings", rep.TicketSettingsSave)
+	rg.GET("/report", rep.Report)
+
+	sch := &admin.NextecScheme{}
+	rg.GET("/connect-scheme", sch.Get)
+	rg.POST("/connect-scheme", sch.Save)
 }
 func LoginBind(rg *gin.RouterGroup) {
 	cont := &admin.Login{}
@@ -333,6 +359,15 @@ func MyBind(rg *gin.RouterGroup) {
 		// Nextec: link de conexão (com a senha automática, quando a máquina tem)
 		conn := &my.NextecConnect{}
 		rg.GET("/my/connect-link", conn.Link)
+
+		// Nextec: suporte avulso, lista de quem está aguardando atendimento
+		sw := &my.NextecSupportWaiting{}
+		rg.GET("/my/support/waiting", sw.List)
+
+		// Nextec: chamado informado ao conectar
+		note := &my.NextecNote{}
+		rg.GET("/my/connect-settings", note.Settings)
+		rg.POST("/my/connect-note", note.Add)
 	}
 
 	{
@@ -364,3 +399,4 @@ func ShareRecordBind(rg *gin.RouterGroup) {
 	}
 
 }
+
