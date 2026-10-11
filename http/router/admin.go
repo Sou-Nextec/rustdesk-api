@@ -82,6 +82,7 @@ func NextecBind(adg *gin.RouterGroup) {
 	upd := &admin.NextecUpdate{}
 	rg.GET("/updates", upd.Overview)
 	rg.POST("/updates/upload", upd.Upload)
+	rg.POST("/updates/signature", upd.Signature)
 	rg.POST("/updates/rollout", upd.Rollout)
 	rg.POST("/updates/delete", upd.Delete)
 }

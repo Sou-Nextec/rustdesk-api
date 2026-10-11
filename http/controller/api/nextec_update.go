@@ -1,6 +1,8 @@
 package api
 
 import (
+	"encoding/base64"
+	"encoding/json"
 	"net/http"
 	"regexp"
 
@@ -12,7 +14,7 @@ import (
 // O instalador não tem segredo (leva o endereço do servidor e a chave pública), mas só são servidos arquivos que o admin enviou.
 type NextecUpdate struct{}
 
-var nextecUpdateFileName = regexp.MustCompile(`^nextec-acesso-[0-9.]{5,24}\.(msi|exe)$`)
+var nextecUpdateFileName = regexp.MustCompile(`^nextec-acesso-[0-9.]{5,24}(?:-(amd64|arm64))?\.(msi|exe|deb)$`)
 
 func updateIP(c *gin.Context) string {
 	if ip := c.GetHeader("CF-Connecting-IP"); ip != "" {
@@ -28,9 +30,28 @@ func (u *NextecUpdate) Manifest(c *gin.Context) {
 	target := service.NextecUpdateTarget(id)
 	targetVersion := ""
 	out := gin.H{"windows": nil, "linux": nil}
-	if target != nil {
-		targetVersion = target.Version
-		out["windows"] = gin.H{"versao": target.Version, "arquivo": "files/" + target.FileName, "sha256": target.Sha256}
+	if signed := service.NextecReleaseSignature(target); signed != nil {
+		var manifest struct {
+			Windows *struct { File string `json:"arquivo"`; Hash string `json:"sha256"`; Size int64 `json:"tamanho"` } `json:"windows"`
+			Linux map[string]struct { File string `json:"arquivo"`; Hash string `json:"sha256"`; Size int64 `json:"tamanho"` } `json:"linux"`
+		}
+		raw, err := base64.StdEncoding.DecodeString(signed.Manifest)
+		if err == nil && json.Unmarshal(raw, &manifest) == nil {
+			if c.Query("platform") == "linux" {
+				arch := c.Query("arch")
+				if (arch == "amd64" || arch == "arm64") {
+					expectedFile := target.LinuxAMD64FileName
+					if arch == "arm64" { expectedFile = target.LinuxARM64FileName }
+					if asset, ok := manifest.Linux[arch]; ok && expectedFile != "" && asset.File == "files/"+expectedFile {
+						targetVersion = target.Version
+						out["linux"] = gin.H{"versao": target.Version, "arquivo": asset.File, "sha256": asset.Hash, "tamanho": asset.Size, "manifesto": signed.Manifest, "assinatura": signed.Signature}
+					}
+				}
+			} else if manifest.Windows != nil && target.FileName != "" {
+				targetVersion = target.Version
+				out["windows"] = gin.H{"versao": target.Version, "arquivo": manifest.Windows.File, "sha256": manifest.Windows.Hash, "tamanho": manifest.Windows.Size, "manifesto": signed.Manifest, "assinatura": signed.Signature}
+			}
+		}
 	}
 	service.NextecUpdateSeen(id, installed, targetVersion, updateIP(c))
 	c.Header("Cache-Control", "no-store")
@@ -50,5 +71,8 @@ func (u *NextecUpdate) File(c *gin.Context) {
 		return
 	}
 	c.Header("Cache-Control", "no-store")
-	c.FileAttachment(service.NextecReleasePath(r), r.FileName)
+	path := service.NextecReleasePathForFile(r, name)
+	if path == "" { c.Status(http.StatusNotFound); return }
+	c.FileAttachment(path, name)
 }
+

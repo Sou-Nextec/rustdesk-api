@@ -1,0 +1,33 @@
+name: Validar atualização Nextec Connect
+on:
+  pull_request:
+    branches:
+      - nextec/atualizacoes-app
+    paths:
+      - 'http/controller/admin/nextec_update.go'
+      - 'http/controller/api/nextec_update.go'
+      - 'http/router/admin.go'
+      - 'model/nextec_update.go'
+      - 'service/nextec_update*.go'
+      - '.github/workflows/nextec-connect-pr.yml'
+permissions:
+  contents: read
+concurrency:
+  group: nextec-connect-api-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+          cache-dependency-path: go.mod
+      - name: Resolver dependências como no build existente
+        run: go mod tidy
+      - name: Testar validação de assinatura do manifesto
+        run: go test ./service -run '^TestNextecSignedRelease$' -count=1
+      - name: Compilar API para Linux
+        run: go build -o "$RUNNER_TEMP/apimain" ./cmd/apimain.go
