@@ -24,6 +24,7 @@ jobs:
         with:
           go-version-file: go.mod
           cache: true
+          cache-dependency-path: go.mod
       - name: Resolver dependências como no build existente
         run: go mod tidy
       - name: Testar validação de assinatura do manifesto
