@@ -20,7 +20,7 @@ func TestNextecSignedRelease(t *testing.T) {
 	}
 	now := time.Now().UTC().Truncate(time.Second)
 	release := &model.NextecAppRelease{Version: "2.0.3", FileName: "nextec-acesso-2.0.3.msi", Sha256: strings.Repeat("a", 64), Size: 100}
-	m := nextecSignedManifest{Product: "nextec-connect", Format: 1, Sequence: 5, Version: release.Version, Issued: now, Expires: now.Add(time.Hour)}
+	m := nextecSignedManifest{Product: "nextec-connect", Format: 1, Sequence: 5, Version: release.Version, Issued: now, Expires: now.Add(time.Hour), Windows: &nextecSignedAsset{}}
 	m.Windows.File = "files/" + release.FileName
 	m.Windows.Hash = release.Sha256
 	m.Windows.Size = release.Size
