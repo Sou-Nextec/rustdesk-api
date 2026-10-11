@@ -24,6 +24,8 @@ jobs:
         with:
           go-version-file: go.mod
           cache: true
+      - name: Resolver dependências como no build existente
+        run: go mod tidy
       - name: Testar validação de assinatura do manifesto
         run: go test ./service -run '^TestNextecSignedRelease$' -count=1
       - name: Compilar API para Linux
